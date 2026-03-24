@@ -4,7 +4,7 @@
 
 A PowerShell script that parses the `*_compstatus.csv` output from SharpHound Enterprise collection jobs and produces an interactive, self-contained HTML report. Quickly identify which computers failed collection, why they failed, which protocol was involved, and what to fix — without digging through raw CSV files.
 
-Built as part of the **SpecterOps TAM Toolkit**.
+Built as part of the **BHE Toolkit**.
 
 ---
 
@@ -20,7 +20,8 @@ Built as part of the **SpecterOps TAM Toolkit**.
   ============================================================
 -->
 
-> 📷 *Screenshot 1 — paste a screenshot of the PowerShell menu here*
+> <img width="853" height="499" alt="image" src="https://github.com/user-attachments/assets/ab2c6294-0358-4c4f-946a-49121c285d6c" />
+
 
 ```
   +------------------------------------------------------+
@@ -45,9 +46,8 @@ Built as part of the **SpecterOps TAM Toolkit**.
 
 <!-- 
   ============================================================
-  SCREENSHOT 2 — PASTE YOUR IMAGE HERE
-  Replace the line below with your actual screenshot filename
-  e.g. ![HTML report](screenshots/report.png)
+ <img width="1955" height="1102" alt="image" src="https://github.com/user-attachments/assets/4dc315c7-34d5-4275-82ed-745f1a060622" />
+
   ============================================================
 -->
 
