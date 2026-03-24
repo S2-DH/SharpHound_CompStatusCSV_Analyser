@@ -1,10 +1,11 @@
+[README.md](https://github.com/user-attachments/files/26221317/README.md)
 # 🩸 BHE CompStatus Analyser
 
 **BloodHound Enterprise — SharpHound Collection Status Analyser**
 
 A PowerShell script that parses the `*_compstatus.csv` output from SharpHound Enterprise collection jobs and produces an interactive, self-contained HTML report. Quickly identify which computers failed collection, why they failed, which protocol was involved, and what to fix — without digging through raw CSV files.
 
-Built as part of the **BHE Toolkit**.
+Built as part of the **SpecterOps TAM Toolkit**.
 
 ---
 
@@ -20,7 +21,7 @@ Built as part of the **BHE Toolkit**.
   ============================================================
 -->
 
-> <img width="853" height="499" alt="image" src="https://github.com/user-attachments/assets/ab2c6294-0358-4c4f-946a-49121c285d6c" />
+> <img width="842" height="474" alt="image" src="https://github.com/user-attachments/assets/3c976389-8b78-4b12-9aa2-30e4c1e7bc73" />
 
 
 ```
@@ -46,12 +47,14 @@ Built as part of the **BHE Toolkit**.
 
 <!-- 
   ============================================================
- <img width="1955" height="1102" alt="image" src="https://github.com/user-attachments/assets/4dc315c7-34d5-4275-82ed-745f1a060622" />
-
+  SCREENSHOT 2 — PASTE YOUR IMAGE HERE
+  Replace the line below with your actual screenshot filename
+  e.g. ![HTML report](screenshots/report.png)
   ============================================================
 -->
 
-> 📷 *Screenshot 2 — paste a screenshot of the HTML report open in a browser here*
+> <img width="1963" height="1122" alt="image" src="https://github.com/user-attachments/assets/35f88c20-9006-4f55-acd2-a1032ec8390c" />
+
 
 ---
 
