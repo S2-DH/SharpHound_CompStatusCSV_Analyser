@@ -1,6 +1,5 @@
 [README.md](https://github.com/user-attachments/files/26242330/README.md)
-[README.md](https://github.com/user-attachments/files/26242330/README.md)
-[README.md](https://github.com/user-attachments/files/26242330/README.md)
+
 # 🩸 BHE CompStatus Analyser
 
 **BloodHound Enterprise — SharpHound Collection Status Analyser**  
@@ -16,8 +15,6 @@ Parses the `*_compstatus.csv` output from SharpHound Enterprise collection jobs 
 
 <!-- Replace with: ![Menu](screenshots/menu.png) -->
 > <img width="836" height="531" alt="image" src="https://github.com/user-attachments/assets/da7560bf-e928-4058-8dcc-ea6f2859b097" />
-<img width="836" height="531" alt="image" src="https://github.com/user-attachments/assets/da7560bf-e928-4058-8dcc-ea6f2859b097" />
-<img width="836" height="531" alt="image" src="https://github.com/user-attachments/assets/da7560bf-e928-4058-8dcc-ea6f2859b097" />
 
 
 ---
@@ -26,8 +23,7 @@ Parses the `*_compstatus.csv` output from SharpHound Enterprise collection jobs 
 
 <!-- Replace with: ![Report](screenshots/report.png) -->
 > <img width="1873" height="775" alt="image" src="https://github.com/user-attachments/assets/5d6a1d84-7ff6-4fda-b55a-5e938d3611e8" />
-<img width="1873" height="775" alt="image" src="https://github.com/user-attachments/assets/5d6a1d84-7ff6-4fda-b55a-5e938d3611e8" />
-<img width="1873" height="775" alt="image" src="https://github.com/user-attachments/assets/5d6a1d84-7ff6-4fda-b55a-5e938d3611e8" />
+
 
 
 ---
