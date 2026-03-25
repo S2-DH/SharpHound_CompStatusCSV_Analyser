@@ -95,6 +95,7 @@ function Get-StatusCategory([string]$Status) {
     if ($s -like '*rpc server*')                 { return 'RPCError' }
     if ($s -like '*registry*')                   { return 'RegistryError' }
     if ($s -like '*collector failed*')           { return 'CollectorError' }
+    if ($s -eq 'nonwindowsos')                   { return 'NonWindowsOS' }
     return 'Other'
 }
 
@@ -153,6 +154,7 @@ $BadgeColour = @{
     RPCError       = '#a855f7'
     RegistryError  = '#ec4899'
     CollectorError = '#f59e0b'
+    NonWindowsOS   = '#0891b2'
     Other          = '#64748b'
 }
 
@@ -191,6 +193,7 @@ $Remediation = @{
     RPCError       = '<b>RPC Server Unavailable</b><br>TCP 135 is blocked or the target RPC service is not responding. Check: (1) Remote Registry service is started and set to Automatic on the target, (2) TCP 135 is open from the collector, (3) Dynamic RPC ports 49152-65535 are not blocked by an intermediate firewall or Windows Firewall rule.'
     RegistryError  = '<b>Remote Registry Access Denied</b><br>SharpHound tried to read <code>SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0</code> via Remote Registry but was denied. Grant Read access to the collector account for that key via GPO (Security Settings &gt; Registry), or ensure the account is a Local Admin on the target. Also verify the Remote Registry service is running on the target.'
     CollectorError = '<b>Collector-side Exception</b><br>SharpHound threw an unhandled exception. Review the full error detail in the results table. Common causes: WMI timeouts, DNS resolution failures, .NET remoting issues. Ensure the collector host has TCP/UDP line-of-sight to the target on all required protocols.'
+    NonWindowsOS   = '<b>Non-Windows Operating System Detected</b><br>SharpHound identified this host as running a non-Windows OS (Linux, macOS, or similar). SharpHound cannot collect session or local group data from non-Windows hosts via SMB/RPC. If the machine is domain-joined (e.g. Linux with SSSD/Winbind), it will appear in BloodHound as a computer object but collection tasks will be skipped. No action is required unless the machine should be Windows — in that case verify the OS and AD computer object are in sync.'
     Other          = '<b>Uncategorised Error</b><br>Review the raw status message in the full results table. This may be a newer error type not yet mapped in this script.'
 }
 
@@ -1206,7 +1209,7 @@ var allFiltered=[],  allPage=1;
 
 var catColors={Success:'#22c55e',NotActive:'#6b7280',PortNotOpen:'#f97316',
   AccessDenied:'#ef4444',StatusAccessDenied:'#ef4444',RPCError:'#a855f7',
-  RegistryError:'#ec4899',CollectorError:'#f59e0b',Other:'#64748b'};
+  RegistryError:'#ec4899',CollectorError:'#f59e0b',NonWindowsOS:'#0891b2',Other:'#64748b'};
 var methodColors={'TCP Port Scan':'#0369a1','SMB / NetWkstaUserEnum':'#0f766e',
   'SMB / SAMRPC':'#0f766e','RPC / LSARPC':'#7c3aed','WMI':'#b45309',
   'Remote Registry (RRP)':'#9a3412','LDAP':'#1d4ed8','Unknown':'#475569'};
@@ -1431,6 +1434,7 @@ var REM_DESCS={
   RPCError:      'RPC Endpoint Mapper (TCP 135) unreachable or Remote Registry stopped.',
   RegistryError: 'Remote Registry running but LSA key ACL denies read access.',
   CollectorError:'SharpHound exception. Review full error in audit log.',
+  NonWindowsOS:  'Linux/macOS detected — SharpHound skips SMB/RPC collection. No action needed unless the host should be Windows.',
   Other:         'Uncategorised error. Review raw status in audit log.'
 };
 
