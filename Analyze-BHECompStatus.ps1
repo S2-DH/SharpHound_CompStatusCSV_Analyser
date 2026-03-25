@@ -44,7 +44,7 @@
     .\Analyze-BHECompStatus.ps1 -NoMenu
 
 .NOTES
-    Author  : SDH / BHE SharpHound Toolkit
+    Author  : SDH / SpecterOps BHE TAM Toolkit
     Version : 2.0
     Requires: PowerShell 5.1+
     Context : BloodHound Enterprise - session and local group collection diagnostics
@@ -249,7 +249,7 @@ function Import-CompStatusCsv([string]$Path) {
 Write-Host ''
 Write-Host '  +------------------------------------------------------+' -ForegroundColor Cyan
 Write-Host '  |  BloodHound Enterprise - CompStatus Analyser  v2.0  |' -ForegroundColor Cyan
-Write-Host '  |  SharpHound Toolkit                                 |' -ForegroundColor Cyan
+Write-Host '  |  SpecterOps BHE TAM Toolkit                             |' -ForegroundColor Cyan
 Write-Host '  +------------------------------------------------------+' -ForegroundColor Cyan
 Write-Host ''
 
@@ -397,6 +397,45 @@ $compJsonParts = foreach ($entry in $compMap.GetEnumerator()) {
     '{"n":"' + $jn + '","ip":"' + $jips + '","ok":' + $jok + ',"fail":' + $jfail + ',"cats":"' + $jcats + '","lines":"' + $jlines + '","tl":"' + $jtl + '","methods":"' + $jmethods + '","datatypes":"' + $jdatatypes + '"}'
 }
 $computerJsonData = '[' + ($compJsonParts -join ',') + ']'
+
+# Build unique subnet lists from actual row data for the filter dropdowns
+function Get-SubnetList([object[]]$rows, [int]$dummy) {
+    $seen = @{}
+    foreach ($r in $rows) {
+        $ip = $r.IPAddress.Trim()
+        # Skip blanks, Unknown, IPv6, and anything that isn't a clean IPv4 address
+        if (-not $ip -or $ip -eq 'Unknown' -or $ip -like '*:*') { continue }
+        # Validate strictly: must match x.x.x.x where each octet is 0-255
+        if ($ip -notmatch '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$') { continue }
+        $parts = $ip -split '\.'
+        # Double-check each octet is a valid integer 0-255
+        $valid = $true
+        foreach ($p in $parts) {
+            $n = 0
+            if (-not [int]::TryParse($p, [ref]$n) -or $n -lt 0 -or $n -gt 255) { $valid = $false; break }
+        }
+        if (-not $valid) { continue }
+        $sn = "$($parts[0]).$($parts[1]).$($parts[2]).x"
+        $seen[$sn] = $true
+    }
+    # Sort numerically by octet value
+    return @($seen.Keys | Sort-Object {
+        $p = $_ -replace '\.x$','' -split '\.'
+        $n = 0
+        $ok0 = [int]::TryParse($p[0], [ref]$n); $o0 = $n
+        $ok1 = [int]::TryParse($p[1], [ref]$n); $o1 = $n
+        $ok2 = [int]::TryParse($p[2], [ref]$n); $o2 = $n
+        $o0 * 65536 + $o1 * 256 + $o2
+    })
+}
+
+$compSubnets = Get-SubnetList -rows @($compMap.GetEnumerator() | ForEach-Object {
+    $_.Value | Select-Object -First 1
+}) -dummy 0
+$failSubnets = Get-SubnetList -rows @($failRows) -dummy 0
+
+$compSubnetJs = ($compSubnets | ForEach-Object { "'" + $_ + "'" }) -join ','
+$failSubnetJs  = ($failSubnets  | ForEach-Object { "'" + $_ + "'" }) -join ','
 
 # ---------------------------------------------------------------------------
 #  BUILD HTML SECTIONS
@@ -851,6 +890,9 @@ $multiCompTableHtml
       <select class="filter-select" id="comp-method-filter" onchange="applyCompFilters()" title="Filter by failed method">
         <option value="">All Methods</option>
       </select>
+      <select class="filter-select" id="comp-subnet-filter" onchange="applyCompFilters()" title="Filter by subnet">
+        <option value="">All Subnets</option>
+      </select>
       <label class="filter-toggle" title="Hide/show computers with Unknown IP">
         <input type="checkbox" id="comp-hide-unknown" onchange="applyCompFilters()"> Hide Unknown IP
       </label>
@@ -880,6 +922,9 @@ $multiCompTableHtml
       </select>
       <select class="filter-select" id="fail-method-filter" onchange="applyFailFilters()" title="Filter by method">
         <option value="">All Methods</option>
+      </select>
+      <select class="filter-select" id="fail-subnet-filter" onchange="applyFailFilters()" title="Filter by subnet">
+        <option value="">All Subnets</option>
       </select>
       <label class="filter-toggle">
         <input type="checkbox" id="fail-hide-unknown" onchange="applyFailFilters()"> Hide Unknown IP
@@ -941,7 +986,7 @@ $multiCompTableHtml
 </section>
 
 </div>
-<footer>BloodHound Enterprise &#8212; SharpHound CompStatus Analyser v2.1 &nbsp;|&nbsp; BHE SharpHound Toolkit &nbsp;|&nbsp; $reportDate</footer>
+<footer>BloodHound Enterprise &#8212; SharpHound CompStatus Analyser v2.1 &nbsp;|&nbsp; SpecterOps BHE TAM Toolkit &nbsp;|&nbsp; $reportDate</footer>
 
 <script>
 // ── Column width auto-fit ──────────────────────────────────────────────────
@@ -964,6 +1009,11 @@ function applyColWidths(){
   }
 }
 window.addEventListener('load',function(){ applyColWidths(); initFilters(); buildRemPills(); });
+
+// ── Pre-built subnet lists from PowerShell ────────────────────────────────
+// Avoids DOM-scanning issues; populated at report generation time
+var COMP_SUBNETS=[$compSubnetJs];
+var FAIL_SUBNETS=[$failSubnetJs];
 
 // ── Chart ──────────────────────────────────────────────────────────────────
 var chartLabels=[$chartLabels],chartValues=[$chartValues],chartColors=[$chartColors];
@@ -1078,47 +1128,87 @@ function populateSelect(selId,vals){
   sel.value=cur;
 }
 
+// Extract /24 subnet prefix from an IP string e.g. "10.0.2.42" -> "10.0.2.x"
+// Returns null for Unknown / empty / IPv6 loopback
+function subnetOf(ip){
+  if(!ip) return null;
+  ip=ip.trim();
+  if(!ip||ip==='Unknown') return null;
+  // Handle multi-IP cells (e.g. "10.0.1.5, 10.0.1.6") - use first IP only
+  if(ip.indexOf(',')>=0) ip=ip.split(',')[0].trim();
+  // Reject IPv6
+  if(ip.indexOf(':')>=0) return null;
+  var parts=ip.split('.');
+  if(parts.length!==4) return null;
+  // Validate each octet is a number
+  for(var i=0;i<4;i++){ if(isNaN(parseInt(parts[i],10))) return null; }
+  return parts[0]+'.'+parts[1]+'.'+parts[2]+'.x';
+}
+
+// Collect unique /24 subnets from a given IP column index in a table
+function getUniqSubnets(tid, ipColIdx){
+  var seen={};
+  document.querySelectorAll('#'+tid+' tbody tr').forEach(function(r){
+    var cell=r.cells[ipColIdx]; if(!cell) return;
+    var sn=subnetOf(cell.textContent.trim());
+    if(sn) seen[sn]=1;
+  });
+  return Object.keys(seen).sort(function(a,b){
+    // sort numerically by octet
+    var ap=a.split('.').map(Number), bp=b.split('.').map(Number);
+    for(var i=0;i<3;i++){ if(ap[i]!==bp[i]) return ap[i]-bp[i]; }
+    return 0;
+  });
+}
+
 function initFilters(){
   // comp table: col 4 = error categories, col 5 = failed methods
-  populateSelect('comp-cat-filter',   getUniqVals('compTable',4));
-  populateSelect('comp-method-filter',getUniqVals('compTable',5));
-  // fail table: col 2 = category, col 3 = method
-  populateSelect('fail-cat-filter',   getUniqVals('failTable',2));
-  populateSelect('fail-method-filter',getUniqVals('failTable',3));
+  populateSelect('comp-cat-filter',    getUniqVals('compTable',4));
+  populateSelect('comp-method-filter', getUniqVals('compTable',5));
+  // Use pre-built subnet lists injected by PowerShell at generation time
+  // (more reliable than DOM scanning which can pick up whitespace/newlines)
+  populateSelect('comp-subnet-filter', COMP_SUBNETS);
+  populateSelect('fail-cat-filter',    getUniqVals('failTable',2));
+  populateSelect('fail-method-filter', getUniqVals('failTable',3));
+  populateSelect('fail-subnet-filter', FAIL_SUBNETS);
 }
 
 // ── Compound filter for computers-with-issues table ────────────────────────
 function applyCompFilters(){
-  var q    =(document.getElementById('compSearch')||{value:''}).value.toLowerCase();
-  var cat  =(document.getElementById('comp-cat-filter')||{value:''}).value.toLowerCase();
-  var meth =(document.getElementById('comp-method-filter')||{value:''}).value.toLowerCase();
-  var hideU=(document.getElementById('comp-hide-unknown')||{checked:false}).checked;
+  var q      =(document.getElementById('compSearch')||{value:''}).value.toLowerCase();
+  var cat    =(document.getElementById('comp-cat-filter')||{value:''}).value.toLowerCase();
+  var meth   =(document.getElementById('comp-method-filter')||{value:''}).value.toLowerCase();
+  var subnet =(document.getElementById('comp-subnet-filter')||{value:''}).value;
+  var hideU  =(document.getElementById('comp-hide-unknown')||{checked:false}).checked;
   document.querySelectorAll('#compTable tbody tr').forEach(function(r){
     var txt=r.textContent.toLowerCase();
-    var ip=(r.cells[1]||{}).textContent||'';
+    var ip=(r.cells[1]||{textContent:''}).textContent.trim();
     var show=true;
     if(q&&txt.indexOf(q)<0)show=false;
     if(cat&&txt.indexOf(cat)<0)show=false;
     if(meth&&txt.indexOf(meth)<0)show=false;
-    if(hideU&&ip.trim()==='Unknown')show=false;
+    if(subnet&&subnetOf(ip)!==subnet)show=false;
+    if(hideU&&ip==='Unknown')show=false;
     r.style.display=show?'':'none';
   });
 }
 
 // ── Compound filter for failures table ────────────────────────────────────
 function applyFailFilters(){
-  var q    =(document.getElementById('failSearch')||{value:''}).value.toLowerCase();
-  var cat  =(document.getElementById('fail-cat-filter')||{value:''}).value.toLowerCase();
-  var meth =(document.getElementById('fail-method-filter')||{value:''}).value.toLowerCase();
-  var hideU=(document.getElementById('fail-hide-unknown')||{checked:false}).checked;
+  var q      =(document.getElementById('failSearch')||{value:''}).value.toLowerCase();
+  var cat    =(document.getElementById('fail-cat-filter')||{value:''}).value.toLowerCase();
+  var meth   =(document.getElementById('fail-method-filter')||{value:''}).value.toLowerCase();
+  var subnet =(document.getElementById('fail-subnet-filter')||{value:''}).value;
+  var hideU  =(document.getElementById('fail-hide-unknown')||{checked:false}).checked;
   document.querySelectorAll('#failTable tbody tr').forEach(function(r){
     var txt=r.textContent.toLowerCase();
-    var ip=(r.cells[6]||{}).textContent||'';
+    var ip=(r.cells[6]||{textContent:''}).textContent.trim();
     var show=true;
     if(q&&txt.indexOf(q)<0)show=false;
     if(cat&&txt.indexOf(cat)<0)show=false;
     if(meth&&txt.indexOf(meth)<0)show=false;
-    if(hideU&&ip.trim()==='Unknown')show=false;
+    if(subnet&&subnetOf(ip)!==subnet)show=false;
+    if(hideU&&ip==='Unknown')show=false;
     r.style.display=show?'':'none';
   });
 }
@@ -1129,7 +1219,8 @@ function clearAllTableFilters(){
     var inp=document.getElementById(p[0]);if(inp)inp.value='';
     document.querySelectorAll('#'+p[1]+' tbody tr').forEach(function(r){r.style.display='';});
   });
-  ['comp-cat-filter','comp-method-filter','fail-cat-filter','fail-method-filter'].forEach(function(id){
+  ['comp-cat-filter','comp-method-filter','comp-subnet-filter',
+   'fail-cat-filter','fail-method-filter','fail-subnet-filter'].forEach(function(id){
     var el=document.getElementById(id);if(el)el.value='';
   });
   ['comp-hide-unknown','fail-hide-unknown'].forEach(function(id){
