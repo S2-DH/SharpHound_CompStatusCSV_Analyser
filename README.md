@@ -3,7 +3,7 @@
 # 🩸 BHE CompStatus Analyser
 
 **BloodHound Enterprise — SharpHound Collection Status Analyser**  
-SpecterOps TAM Toolkit · PowerShell 5.1+
+BHE Toolkit · PowerShell 5.1+
 
 Parses the `*_compstatus.csv` output from SharpHound Enterprise collection jobs and produces a fast, interactive HTML report. Identify which computers failed collection, the protocol involved, the affected subnet, and the remediation steps — without digging through raw CSV.
 
@@ -69,7 +69,7 @@ When more than one CSV is found:
 ```
   +------------------------------------------------------+
   |  BloodHound Enterprise - CompStatus Analyser  v2.1  |
-  |  SpecterOps TAM Toolkit                             |
+  |  BHE Toolkit                                        |
   +------------------------------------------------------+
 
   [*] Found 3 compstatus file(s) in: C:\BHELogs
@@ -284,4 +284,4 @@ File format matches SharpHound output exactly: UTF-8 BOM, CRLF line endings, spa
 
 ---
 
-*SpecterOps TAM Toolkit — BloodHound Enterprise*
+*BHE Toolkit — BloodHound Enterprise*
