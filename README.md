@@ -1,9 +1,8 @@
-[README.md](https://github.com/user-attachments/files/26242330/README.md)
-
+[README.md](https://github.com/user-attachments/files/26271680/README.md)
 # 🩸 BHE CompStatus Analyser
 
 **BloodHound Enterprise — SharpHound Collection Status Analyser**  
-BHE Toolkit · PowerShell 5.1+
+BHE Toolkit v1.0 · PowerShell 5.1+
 
 Parses the `*_compstatus.csv` output from SharpHound Enterprise collection jobs and produces a fast, interactive HTML report. Identify which computers failed collection, the protocol involved, the affected subnet, and the remediation steps — without digging through raw CSV.
 
@@ -14,17 +13,14 @@ Parses the `*_compstatus.csv` output from SharpHound Enterprise collection jobs 
 ### Interactive menu
 
 <!-- Replace with: ![Menu](screenshots/menu.png) -->
-> <img width="836" height="531" alt="image" src="https://github.com/user-attachments/assets/da7560bf-e928-4058-8dcc-ea6f2859b097" />
-
+> 📷 *Paste a screenshot of the PowerShell menu here*
 
 ---
 
 ### HTML report
 
 <!-- Replace with: ![Report](screenshots/report.png) -->
-> <img width="1873" height="775" alt="image" src="https://github.com/user-attachments/assets/5d6a1d84-7ff6-4fda-b55a-5e938d3611e8" />
-
-
+> 📷 *Paste a screenshot of the HTML report here*
 
 ---
 
@@ -33,7 +29,7 @@ Parses the `*_compstatus.csv` output from SharpHound Enterprise collection jobs 
 Place the script in the same folder as your compstatus CSV files and run:
 
 ```powershell
-.\Analyze-BHECompStatus.ps1
+.\BHE_Analyse_CompStatusCSV.ps1
 ```
 
 The script auto-discovers all `*compstatus*.csv` files. If more than one is found it shows a numbered menu. The HTML report is written to a `Reports\` subfolder.
@@ -51,13 +47,13 @@ The script auto-discovers all `*compstatus*.csv` files. If more than one is foun
 
 ```powershell
 # Custom folders
-.\Analyze-BHECompStatus.ps1 -SearchFolder "C:\BHELogs" -OutputFolder "C:\Reports"
+.\BHE_Analyse_CompStatusCSV.ps1 -SearchFolder "C:\BHELogs" -OutputFolder "C:\Reports"
 
 # Custom title
-.\Analyze-BHECompStatus.ps1 -ReportTitle "states.local — Weekly Run"
+.\BHE_Analyse_CompStatusCSV.ps1 -ReportTitle "states.local — Weekly Run"
 
 # Non-interactive (scheduled tasks / automation)
-.\Analyze-BHECompStatus.ps1 -NoMenu
+.\BHE_Analyse_CompStatusCSV.ps1 -NoMenu
 ```
 
 ---
@@ -68,8 +64,8 @@ When more than one CSV is found:
 
 ```
   +------------------------------------------------------+
-  |  BloodHound Enterprise - CompStatus Analyser  v2.1  |
-  |  BHE Toolkit                                        |
+  |  BloodHound Enterprise - CompStatus Analyser  v1.0  |
+  |  BHE Toolkit v1.0                             |
   +------------------------------------------------------+
 
   [*] Found 3 compstatus file(s) in: C:\BHELogs
@@ -274,7 +270,7 @@ File format matches SharpHound output exactly: UTF-8 BOM, CRLF line endings, spa
 ## File structure
 
 ```
-├── Analyze-BHECompStatus.ps1     ← main script
+├── BHE_Analyse_CompStatusCSV.ps1     ← main script
 ├── sample_compstatus_100.csv     ← test data (all error categories, 18 subnets)
 ├── README.md
 └── screenshots/
@@ -284,4 +280,4 @@ File format matches SharpHound output exactly: UTF-8 BOM, CRLF line endings, spa
 
 ---
 
-*BHE Toolkit — BloodHound Enterprise*
+*BHE Toolkit v1.0 — BloodHound Enterprise*
