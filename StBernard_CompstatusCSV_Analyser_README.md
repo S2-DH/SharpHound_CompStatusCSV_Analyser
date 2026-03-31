@@ -53,7 +53,8 @@ Custom Font Awesome icons visually distinguish node types at a glance:
 *After ingesting the OG JSON into BloodHound Explore. The collector node sits at the centre; green/red/skull icons show collection outcome per computer.*
 
 ### Custom Node Icons
-![Four custom node icons registered in BHE: blue house-signal for SBHCollector, green house-circle-check for SBHComputerOK, red house-circle-xmark for SBHComputerFail, dark skull-crossbones for SBHComputerUnknown](_screenshots/04_icons.png)
+<img width="3720" height="1199" alt="image" src="https://github.com/user-attachments/assets/ee4441bc-dae4-4150-8ff6-038d36dc0070" />
+
 *The four Font Awesome icons registered via `POST /api/v2/custom-nodes`. Blue = collector, Green = full success, Red = at least one failure, Skull = no IP or SID resolved.*
 
 > **To add your own screenshots:** create a `_screenshots/` folder alongside the script and README, and save your captures using the filenames above.
