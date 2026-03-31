@@ -1,289 +1,311 @@
-[README.md](https://github.com/user-attachments/files/26271680/README.md)
-# 🩸 BHE CompStatus Analyser
+[StBernard-SharpHound_README.md](https://github.com/user-attachments/files/26372710/StBernard-SharpHound_README.md)
+# St.Bernard-Hound — CompStatus CSV Analyser & OG JSON Generator v1
 
-**BloodHound Enterprise — SharpHound Collection Status Analyser**  
-BHE Toolkit v1.0 · PowerShell 5.1+
-
-Parses the `*_compstatus.csv` output from SharpHound Enterprise collection jobs and produces a fast, interactive HTML report. Identify which computers failed collection, the protocol involved, the affected subnet, and the remediation steps — without digging through raw CSV.
-
----
-
-## 📸 Screenshots
-
-### Interactive menu
-
-<!-- Replace with: ![Menu](screenshots/menu.png) -->
-><img width="973" height="533" alt="image" src="https://github.com/user-attachments/assets/6e25bb51-ed32-41b3-a22a-8fbb19a5cbbb" />
-
+**Project:** StBernardHound  
+**Part of:** BHE Toolkit  
+**Script:** `StBernard-SharpHound-compstatusCSV-analyser.ps1`  
+**Requires:** PowerShell 5.1+, BloodHound Enterprise or CE v8.0+ (PostgreSQL backend)
 
 ---
 
-### HTML report
+## Overview
 
-<!-- Replace with: ![Report](screenshots/report.png) -->
-> <img width="1864" height="926" alt="image" src="https://github.com/user-attachments/assets/920d17d8-f328-4247-bb55-e76ba689b188" />
+StBernardHound extends the CompStatus CSV analyser to produce a **BloodHound OpenGraph JSON** from your SharpHound compstatus CSV data. Once ingested into BHE, it graphs every SharpHound collector-to-computer relationship with typed edges representing the specific collection failure (or success) — making collection coverage gaps and connectivity issues visible directly in the BHE Explore graph.
 
-> <img width="937" height="479" alt="image" src="https://github.com/user-attachments/assets/fd51b756-d0a8-4ded-a90b-f8a314c7ea4b" />
+The graph model is:
 
-<img width="1852" height="815" alt="image" src="https://github.com/user-attachments/assets/f83fce64-17b7-4dcd-853e-b365ef8739a9" />
+```
+(SBHCollector) ──[SBH_<ErrorType>]──► (SBHComputerOK | SBHComputerFail)
+```
 
+Custom Font Awesome icons visually distinguish node types at a glance:
+
+| Node Kind | Icon | Colour | Meaning |
+|---|---|---|---|
+| `SBHCollector` | `house-signal` | Blue `#3b82f6` | The SharpHound collector host |
+| `SBHComputerOK` | `house-circle-check` | Green `#22c55e` | All tasks succeeded |
+| `SBHComputerFail` | `house-circle-xmark` | Red `#ef4444` | At least one task failed |
+| `SBHComputerUnknown` | `skull-crossbones` | Dark slate `#1e293b` | No IP and no SID — identity unresolvable |
 
 ---
 
-## Quick start
-
-Place the script in the same folder as your compstatus CSV files and run:
+## Quick Start
 
 ```powershell
-.\BHE_Analyse_CompStatusCSV.ps1
-```
+# 1. Export OpenGraph JSON (upload manually to BHE afterwards)
+.\BHE_Analyse_CompStatusCSV.ps1 -ExportOpenGraph
 
-The script auto-discovers all `*compstatus*.csv` files. If more than one is found it shows a numbered menu. The HTML report is written to a `Reports\` subfolder.
+# 2. Export + auto-upload icons to BHE in one step
+.\BHE_Analyse_CompStatusCSV.ps1 -ExportOpenGraph -UploadIcons `
+    -BHEUrl     "https://your-bhe-instance.local" `
+    -BHETokenId "your-token-id" `
+    -BHETokenKey "your-token-key"
+
+# 3. Full run — no menu, named collector, separate output folder, icons uploaded
+.\BHE_Analyse_CompStatusCSV.ps1 -NoMenu -ExportOpenGraph -UploadIcons `
+    -CollectorName  "SH-SVC01" `
+    -OGOutputFolder "C:\BHE\OpenGraph" `
+    -BHEUrl         "https://your-bhe-instance.local" `
+    -BHETokenId     "your-token-id" `
+    -BHETokenKey    "your-token-key"
+```
 
 ---
 
-## Parameters
+## New Parameters
 
-| Parameter | Default | Description |
+| Parameter | Type | Description |
 |---|---|---|
-| `-SearchFolder` | Script directory | Where to look for `*compstatus*.csv` files |
-| `-OutputFolder` | `.\Reports\` | Where to write the HTML report |
-| `-ReportTitle` | `BHE Collection Status Report` | Title prefix in the report header |
-| `-NoMenu` | — | Skip the interactive menu, process all files immediately |
+| `-ExportOpenGraph` | Switch | Generates the StBernardHound JSON alongside the HTML report |
+| `-CollectorName` | String | Label for the collector node. Defaults to `$env:COMPUTERNAME` |
+| `-OGOutputFolder` | String | Output folder for JSON and Cypher pack. Defaults to the HTML report folder |
+| `-UploadIcons` | Switch | Uploads custom node icons to BHE after export. Requires `-BHEUrl` + auth |
+| `-BHEUrl` | String | Base URL of your BHE instance e.g. `https://sololeveling.bhe.local` |
+| `-BHETokenId` | String | API Token ID from BHE Settings → API Keys |
+| `-BHETokenKey` | String | API Token Key from BHE Settings → API Keys |
+| `-BHEBearerToken` | String | JWT Bearer token (alternative to TokenId/Key — copy from API Explorer) |
 
+---
+
+## Output Files
+
+Each run with `-ExportOpenGraph` produces two files alongside the HTML report:
+
+| File | Description |
+|---|---|
+| `StBernardHound-OG_<timestamp>.json` | OpenGraph payload — upload to BHE via Explore → Upload Data |
+
+---
+
+## Ingesting Into BHE
+
+### Step 1 — Upload the graph data
+
+**BHE UI:** Explore → Upload Data → select `StBernardHound_<timestamp>.json`
+
+**API (PowerShell):**
 ```powershell
-# Custom folders
-.\BHE_Analyse_CompStatusCSV.ps1 -SearchFolder "C:\BHELogs" -OutputFolder "C:\Reports"
-
-# Custom title
-.\BHE_Analyse_CompStatusCSV.ps1 -ReportTitle "states.local — Weekly Run"
-
-# Non-interactive (scheduled tasks / automation)
-.\BHE_Analyse_CompStatusCSV.ps1 -NoMenu
+# Multipart upload via BHE API
+$form = @{ file = Get-Item ".\StBernardHound_2026-03-30.json" }
+Invoke-RestMethod -Uri "https://your-bhe.local/api/v2/file-upload" `
+    -Method Post -Headers $authHeaders -Form $form
 ```
+
+### Step 2 — Register custom icons (once only)
+
+Icons persist in BHE once registered. You only need to do this once per instance — not on every CSV run.
+
+**Option A — Script (recommended):**
+```powershell
+.\BHE_Analyse_CompStatusCSV.ps1 -ExportOpenGraph -UploadIcons `
+    -BHEUrl "https://your-bhe.local" -BHETokenId "..." -BHETokenKey "..."
+```
+
+**Option B — BHE API Explorer (no scripting needed):**
+1. BHE menu → **API Explorer**
+2. **Custom Node Management** → `POST /api/v2/custom-nodes` → **Try it out**
+3. Paste the payload below → **Execute** → expect `201`
+
+```json
+{
+  "custom_types": {
+    "SBHCollector": {
+      "icon": { "type": "font-awesome", "name": "house-signal", "color": "#3b82f6" }
+    },
+    "SBHComputerOK": {
+      "icon": { "type": "font-awesome", "name": "house-circle-check", "color": "#22c55e" }
+    },
+    "SBHComputerFail": {
+      "icon": { "type": "font-awesome", "name": "house-circle-xmark", "color": "#ef4444" }
+    },
+    "SBHComputerUnknown": {
+      "icon": { "type": "font-awesome", "name": "skull-crossbones", "color": "#1e293b" }
+    }
+  }
+}
+```
+
+### Step 3 — Refresh BHE Explore
+
+Icons and new nodes appear after a page refresh.
 
 ---
 
-## Interactive menu
+## Edge Types
 
-When more than one CSV is found:
+Each edge represents a specific SharpHound collection outcome. One edge per unique error category per computer.
 
-```
-  +------------------------------------------------------+
-  |  BloodHound Enterprise - CompStatus Analyser  v1.0   |
-  |  BHE Toolkit v1.0                                    |
-  +------------------------------------------------------+
-
-  [*] Found 3 compstatus file(s) in: C:\BHELogs
-
-    [1]  2026-03-22-09-00-01_1413_compstatus.csv   (18 KB)
-    [2]  2026-03-23-09-00-02_1413_compstatus.csv   (19 KB)
-    [3]  2026-03-24-10-38-02_1413_compstatus.csv   (21 KB)
-
-    [4]  Compare ALL 3 files — cross-run report
-
-  Enter choice: _
-```
-
-Single file → **Single Run** report. Option `[N+1]` → **Multi-Run Comparison** with cross-run traffic lights per computer.
-
----
-
-## Report sections
-
-All sections are collapsible. A **↑ Top** button in the sticky search bar fades in once you scroll down, providing quick navigation back to the top of the page.
-
-### 🩺 Remediation quick-reference
-Sits above the summary. One card per failure category present in the data, showing occurrence count and a one-line description. Click any card to jump to the full guidance and highlight the matching section.
-
-### 📊 Summary cards
-Seven clickable stat cards — click to jump to the relevant section with all filters reset. Where applicable, clicking applies a filter automatically:
-
-| Card | Destination | Filter applied |
+| Edge Kind | Meaning | Key Tasks |
 |---|---|---|
-| Total task results | Full Audit Log | None — all rows |
-| Unique computers | Computers with Issues | None |
-| Successful | Full Audit Log | Success rows only |
-| Failed | All Failed Results | None |
-| Not Active | Not Active section | — |
-| Fully successful | Full Audit Log | Success rows only |
-| Task-level errors | Computers with Issues | Only computers with non-availability failures |
+| `SBH_CollectionOK` | All tasks succeeded | All |
+| `SBH_NotActive` | Computer offline / unreachable | `ComputerAvailability` |
+| `SBH_PortNotOpen` | TCP 445 / 135 blocked | `ComputerAvailability` |
+| `SBH_AccessDenied` | Insufficient privileges | `NetWkstaUserEnum`, `LSAEnumerateAccountsWithUserRight` |
+| `SBH_RPCError` | RPC server unavailable | `SamConnect`, `LSAOpenPolicy`, RPC calls |
+| `SBH_RegistryError` | Remote registry access denied | `ReadRegistrySettings` |
+| `SBH_CollectorError` | SharpHound collector-side exception | Any |
+| `SBH_NonWindowsOS` | Non-Windows OS, collection skipped | `ComputerAvailability` |
+| `SBH_Timeout` | RPC / SMB operation timed out | `NetWkstaUserEnum`, `SamConnect`, `OpenAlias` |
+| `SBH_NumericError` | Raw Win32 / NTSTATUS error code | Any |
+| `SBH_Other` | Uncategorised / unmapped error | Any |
 
-When a filter is active the section heading shows a subtitle indicating what is being shown and how many rows match.
+Each edge carries these properties:
 
-### 📈 Failure distribution chart
-Donut chart with count and percentage per error category on hover.
-
-### 🔍 Computer spotlight search
-Sticky search bar pinned below the header, always visible while scrolling. Type any computer name — partial matches supported, comma-separate for multiple. Each result card shows:
-- Traffic-light status · IP address · ok/fail counts · CSV line number(s)
-- Error category badges · collection method badges
-- Action links: **Issues Table** · **Audit Log** · **Failures Only**
-
-Pressing **✕** or `Escape` clears the search and resets all table filters.
-
-### 🖥️ Computers with Issues
-One row per computer with at least one failure. Shows row count above the table, updated live as filters change.
-
-**Filters:** free-text search · error category dropdown · failed method dropdown · subnet dropdown (see below) · Hide Unknown IP checkbox · sortable columns
-
-**Columns:** Computer · IP · Tasks OK · Tasks Failed · Error Categories · Failed Methods · Status · File / Line(s)
-
-### ❌ All Failed Results
-Every failed row. Paginated — 100 rows per page. Same filter set as the Issues table. Computer name is shown only on the first row for each computer; subsequent rows are indented with a left border, and a task count badge shows how many tasks failed for that machine. Groups alternate background shade so each computer's rows are visually distinct.
-
-**Columns:** Computer · Task · Category · Method · Data Collected · Status Detail · IP · File / Line
-
-### 🔧 Remediation Guidance
-One collapsible card per error category. Each card includes root cause, fix steps, and an **affected computers table** (Computer · IP · Failed Task(s) · Method) replacing the old comma-separated name list.
-
-| Category | Typical cause |
+| Property | Description |
 |---|---|
-| **NotActive** | Computer offline, VM powered down, or stale AD object |
-| **PortNotOpen** | TCP 445 or TCP 135 blocked by firewall or host policy |
-| **AccessDenied** | Service account lacks `NetWkstaUserEnum` rights |
-| **StatusAccessDenied** | `SeSecurityPrivilege` missing for `LSAEnumerateAccountsWithUserRight` |
-| **RPCError** | RPC Endpoint Mapper unreachable, Remote Registry stopped, or `StatusRpcServerUnavailable` |
-| **RegistryError** | Remote Registry running but LSA key ACL denies read |
-| **CollectorError** | Unhandled SharpHound exception or `StatusInvalidParameter` |
-| **NonWindowsOS** | Linux/macOS detected — SharpHound skips SMB/RPC collection |
-| **Timeout** | RPC/SMB call timed out (heavy load or network latency) |
-| **NumericError** | Raw Win32/NTSTATUS code (53 = network path not found, 50 = not supported) |
-
-### 💤 Not Active
-Collapsible list of all computers that failed the availability check. Shows the total count and includes **Export CSV** and **Print / PDF** buttons.
-
-### 📋 Full Audit Log
-Every row from the source CSV. Paginated — 100 rows per page, grouped by computer with alternating row shading. Free-text searchable.
-
-### 📤 Export and print
-Every section includes:
-- **Export CSV** — exports currently filtered rows (paginated tables export all filtered rows across all pages, not just the visible page)
-- **Print / PDF** — expands the section and opens the browser print dialog (use *Save as PDF* in Chrome)
-- **Export Full Report PDF** (Audit Log) — expands all sections then prints the whole report
+| `category` | Error category name |
+| `occurrence_count` | Number of CSV rows matching this category for this computer |
+| `tasks_failed` | Comma-separated list of SharpHound task names |
+| `collection_methods` | Protocols involved (SMB, RPC, WMI etc.) |
+| `ip_address` | IP address of the target computer |
+| `source` | Always `StBernardHound` |
+| `source_files` | CSV filename(s) — populated in multi-file mode |
 
 ---
 
-## Collection method mapping
+## Node Properties
 
-| Task | Protocol | Data collected |
-|---|---|---|
-| ComputerAvailability | TCP Port Scan | Reachability |
-| NetWkstaUserEnum | SMB / NetWkstaUserEnum | Active sessions |
-| GetMembersInAlias — * | SMB / SAMRPC | Local group members |
-| OpenAlias — * | SMB / SAMRPC | Local group handle |
-| SamConnect | SMB / SAMRPC | SAM connection |
-| OpenDomain — * | SMB / SAMRPC | SAM domain handle |
-| GetAliases — * | SMB / SAMRPC | Local group enumeration |
-| GetDomains | SMB / SAMRPC | SAM domain enumeration |
-| LSAEnumerateAccountsWithUserRight | RPC / LSARPC | Privileged rights |
-| LSAOpenPolicy | RPC / LSARPC | LSA policy handle |
-| ReadRegistrySettings — DotNetWmi | WMI | NTLM / registry config |
-| ReadRegistrySettings — RemoteRegistry | Remote Registry (RRP) | NTLM / registry config |
-| ReadComputerProperties / ReadUserProperties | LDAP | Computer / user attributes |
+### SBHCollector
 
-`PortScanSkipped` (SharpHound fast-path availability — port scan bypassed) is treated as `Success`.
-
----
-
-## Subnet filter
-
-The subnet dropdown in the Issues and Failures tables auto-populates with every distinct `/24` present in the data, sorted numerically. Two fixed options always appear at the top:
-
-- **All Subnets** — show everything
-- **Unknown IP** — show only computers where no IP was recorded
-
-Selecting a real subnet (e.g. `172.16.1.x`) combined with a category or method filter lets you ask questions like *"which WMI failures are in the 10.0.3.x server subnet?"*
-
-> **Note on Unknown IPs:**
-> - **PortNotOpen with a real IP** — DNS resolved before the port check failed. These appear in the correct subnet bucket.
-> - **PortNotOpen with Unknown IP** — DNS also failed. These appear only under *All Subnets* or *Unknown IP*.
-> - **NotActive** — most entries show `Unknown` as the availability check failed before an IP was recorded.
-> - The **Hide Unknown IP** checkbox and **Unknown IP** subnet option are mutually exclusive — selecting one disables the other.
-
----
-
-## Multi-file comparison
-
-Selecting *Compare ALL* produces a cross-run analysis with two additional sections:
-
-**Files Analysed** — per-file row counts, success/fail, and traffic-light per file.
-
-**All Computers — Cross-Run Status** — every unique computer listed once:
-
-| | Meaning |
+| Property | Description |
 |---|---|
-| 🟢 OK — All Files | Successful in every run |
-| 🟠 Mixed | Succeeded in some runs, failed in others — intermittent |
-| 🔴 Failed — All Files | Never succeeded across any analysed run |
+| `name` | Collector hostname (uppercase) |
+| `displayname` | Collector hostname |
+| `description` | `StBernardHound SharpHound Collector` |
+| `generated_at` | UTC timestamp of JSON generation |
+| `source` | `StBernardHound` |
 
-File / Line(s) groups by file: `2026-03-24_compstatus.csv: 135, 136 | 2026-03-25_compstatus.csv: 141`.
+### SBHComputerOK / SBHComputerFail / SBHComputerUnknown
 
----
-
-## Performance — large datasets
-
-The Failures and Full Audit Log tables use **virtual pagination**: row data is stored as a JavaScript array and only 100 rows are rendered into the DOM at a time. Filters run against the array rather than DOM nodes, so a 70,000-row dataset from a large environment opens and filters as fast as a 100-row file.
-
-The Issues and Remediation tables render all rows directly — these are bounded by the number of unique computers with failures, typically far smaller than the total row count.
-
----
-
-## Sample test file
-
-`sample_compstatus_100.csv` — **116 unique computers · 725 rows · 18 subnets** — using *Solo Leveling* character names on the `SOLO-LEVELING.COM` domain.
-
-**Error scenarios covered:**
-
-| Scenario | Computers |
+| Property | Description |
 |---|---|
-| Fully successful (DCs + servers) | 12 |
-| NotActive with real IP | 58 |
-| NotActive with Unknown IP | 3 |
-| PortNotOpen with real IP | 6 |
-| PortNotOpen with Unknown IP | 2 |
-| ErrorAccessDenied (NetWkstaUserEnum) | 5 |
-| StatusAccessDenied (LSA) | 5 |
-| Dual denied (both NetWksta + LSA) | 7 |
-| RPCError | 4 |
-| RegistryError (with full embedded stack trace) | 2 |
-| Triple failure combo | 3 |
-| NonWindowsOS with real IP | 4 |
-| NonWindowsOS with Unknown IP | 1 |
-| PortScanSkipped + full success | 2 |
-| PortScanSkipped + partial failure | 2 |
-| Timeout (RPC/SMB call timed out) | 2 |
-| StatusRpcServerUnavailable (NTSTATUS form) | 1 |
-| Numeric error codes (53, 50) | 1 |
-| StatusInvalidParameter | 1 |
-| New SAM/LSA tasks (SamConnect, OpenAlias, LSAOpenPolicy etc.) | 1 |
+| `name` | Computer name from CSV (uppercase) |
+| `displayname` | Computer name from CSV |
+| `objectsid` | AD SID from CSV ObjectID column (if present) — for correlation with BHE AD data |
+| `ipaddress` | IP address from CSV |
+| `trafficlight` | `green`, `orange`, or `red` |
+| `source` | `StBernardHound` |
 
-File format matches SharpHound output exactly: UTF-8 BOM, CRLF line endings, space after comma delimiter, 5-column header.
+> **SBHComputerUnknown** is assigned when a computer has neither an IP address nor an AD SID in the CSV — SharpHound recorded the machine name but could not resolve anything further. These are the most invisible computers in your environment and typically the hardest to remediate. Common causes: stale AD objects, DNS failures, or machines in isolated network segments.
 
----
-
-## Requirements
-
-| | |
-|---|---|
-| PowerShell 5.1+ | Standard on Windows 10 / Server 2016+ |
-| `Microsoft.VisualBasic` assembly | Included in .NET Framework — present by default |
-| Browser | Chrome recommended for PDF export |
-| Internet (browser) | Chart.js from `cdn.jsdelivr.net` — report is otherwise fully self-contained |
-
----
-
-## File structure
-
-```
-├── BHE_Analyse_CompStatusCSV.ps1     ← main script
-├── sample_compstatus_100.csv     ← test data (all error categories, 18 subnets)
-├── README.md
-└── screenshots/
-    ├── menu.png                  ← replace with your screenshot
-    └── report.png                ← replace with your screenshot
+The `objectsid` property lets you correlate StBernardHound nodes with existing BHE Computer nodes from SharpHound data:
+```cypher
+MATCH (sbh:SBHComputerFail), (ad:Computer)
+WHERE sbh.objectsid = ad.objectid
+RETURN sbh.name, ad.name, ad.operatingsystem
 ```
 
 ---
 
-*BHE Toolkit v1.0 — BloodHound Enterprise*
+## Cypher Queries
+
+All queries below are confirmed working against BHE self-hosted (AGE/CySQL backend).
+
+```cypher
+-- Show the collector node
+MATCH (c:SBHCollector) RETURN c LIMIT 5
+
+-- All paths from collector across all edge types
+MATCH p=(c:SBHCollector)-[r:SBH_AccessDenied|SBH_CollectionOK|SBH_CollectorError|SBH_NonWindowsOS|SBH_NotActive|SBH_NumericError|SBH_PortNotOpen|SBH_RegistryError|SBH_RPCError|SBH_Timeout]->(comp) RETURN p
+
+-- All computers with full successful collection (green house)
+MATCH p=(c:SBHCollector)-[]->(comp:SBHComputerOK) RETURN p
+
+-- All computers connected to collector regardless of edge type
+MATCH p=(c:SBHCollector)-[]-() RETURN p
+
+-- Computers where CollectionOK edge leads to a green node
+MATCH p=(c:SBHCollector)-[:SBH_CollectionOK]->(comp:SBHComputerOK) RETURN p
+
+-- All failed computers as standalone nodes (red house)
+MATCH (c:SBHComputerFail) RETURN c
+
+-- Access denied - collector account missing privileges
+MATCH p=(c:SBHCollector)-[:SBH_AccessDenied]->() RETURN p
+
+-- RPC unavailable - TCP 135 blocked or RPC service down
+MATCH p=(c:SBHCollector)-[:SBH_RPCError]->() RETURN p
+
+-- Collector exception - SharpHound threw an unhandled error
+MATCH p=(c:SBHCollector)-[:SBH_CollectorError]->() RETURN p
+
+-- Remote registry denied - RRP service or ACL issue
+MATCH p=(c:SBHCollector)-[:SBH_RegistryError]->() RETURN p
+
+-- Timeout - machine reachable but RPC/SMB call did not complete
+MATCH p=(c:SBHCollector)-[:SBH_Timeout]->() RETURN p
+
+-- Port not open - TCP 445/135 blocked at host or network level
+MATCH p=(c:SBHCollector)-[:SBH_PortNotOpen]->() RETURN p
+
+-- Non-Windows OS - SMB/RPC collection not applicable
+MATCH p=(c:SBHCollector)-[:SBH_NonWindowsOS]->() RETURN p
+
+-- Not active - machine did not respond to availability check
+MATCH p=()-[:SBH_NotActive]->() RETURN p
+
+-- Numeric error - raw Win32/NTSTATUS code, check Status in HTML report
+MATCH p=()-[:SBH_NumericError]->() RETURN p
+
+-- Check if any uncategorised errors exist (errors if no edges present in graph)
+MATCH ()-[r:SBH_Other]->() RETURN count(r)
+
+-- Unknown computers - no IP and no SID recorded by SharpHound
+MATCH p=(c:SBHCollector)-[r]->(comp:SBHComputerUnknown) RETURN p
+```
+
+
+## Authentication — API Key Setup
+
+Generate an API token in BHE for use with `-UploadIcons`:
+
+1. BHE UI → **Settings → API Keys → Create API Key**  
+   *or* top-right corner → **My Profile → API Key Management → Create Token**
+2. Give it a descriptive name (e.g. `StBernardHound`)
+3. Save both the **Token ID** and **Token Key** — the key is shown only once
+4. Pass them to the script as `-BHETokenId` and `-BHETokenKey`
+
+Authentication uses BHE's standard three-step chained HMAC-SHA256 scheme:
+```
+Step 1: HMAC( tokenKey,  METHOD + ENDPOINT ) → hash1
+Step 2: HMAC( hash1,     dateKey            ) → hash2   (dateKey = first 13 chars of timestamp)
+Step 3: HMAC( hash2,     requestBody        ) → sig
+```
+
+Sent as three headers: `Authorization: bhesignature <tokenId>`, `RequestDate`, `Signature`.
+
+---
+
+## Known Limitations
+
+**AGE/CySQL (self-hosted BHE):**
+- `STARTS WITH` on `type(r)` is unsupported — use explicit edge kind names
+- Any edge kind referenced in a pipe list (`r:A|B|C`) must have at least one edge in the graph or the query fails — the script builds pipe lists dynamically per run to handle this
+
+**OpenGraph:**
+- StBernardHound nodes (`SBHComputerOK`, `SBHComputerFail`) are separate from BHE's native SharpHound `Computer` nodes — they do not merge automatically
+- Use the `objectsid` property to manually correlate with AD Computer nodes if needed
+- Icons must be registered once via the API before they appear — they are not part of the graph JSON
+
+**Re-ingesting:**
+- Each JSON upload adds new nodes/edges. If you re-run and re-ingest, you may end up with duplicate StBernardHound nodes from previous runs. Clear old data via Cypher before re-ingesting if needed:
+```cypher
+MATCH (n:SBHCollector) DETACH DELETE n
+MATCH (n:SBHComputerOK) DETACH DELETE n
+MATCH (n:SBHComputerFail) DETACH DELETE n
+MATCH (n:SBHComputerUnknown) DETACH DELETE n
+```
+
+---
+
+## Files Reference
+
+| File | Description |
+|---|---|
+| `BHE_Analyse_CompStatusCSV.ps1` | Main script — St.Bernard-Hound v1 |
+| `StBernardHound_<timestamp>.json` | OpenGraph graph payload — upload to BHE |
+| `StBernardHound-CompStatus-<mode>_<timestamp>.html` | HTML analysis report |
+
+---
+
+*St.Bernard-Hound - CompStatus CSV Analyser & OG JSON Generator v1 — SDH / SpecterOps TAM*
