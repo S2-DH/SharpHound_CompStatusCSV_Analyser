@@ -53,7 +53,8 @@ Custom Font Awesome icons visually distinguish node types at a glance:
 *After ingesting the OG JSON into BloodHound Explore. The collector node sits at the centre; green/red/skull icons show collection outcome per computer.*
 
 ### Custom Node Icons
-<img width="3720" height="1199" alt="image" src="https://github.com/user-attachments/assets/ee4441bc-dae4-4150-8ff6-038d36dc0070" />
+<img width="297" height="75" alt="image" src="https://github.com/user-attachments/assets/4d84c957-9f81-4011-8517-103849c6809b" />
+
 
 *The four Font Awesome icons registered via `POST /api/v2/custom-nodes`. Blue = collector, Green = full success, Red = at least one failure, Skull = no IP or SID resolved.*
 
