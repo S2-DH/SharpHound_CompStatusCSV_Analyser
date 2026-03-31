@@ -2,7 +2,7 @@
 
 <img width="80" height="100" alt="image" src="https://github.com/user-attachments/assets/8cfbe34e-2d5b-41d7-a5c8-e76756701370" /> 
 
-**# St.Bernard_CompstatusCSV_Analyser**
+**# St.Bernard Compstatus.csv Analyser**
 
 > *Image: Freepik Premium resource. Free users must attribute: "Image by pch.vector on Freepik". Premium subscribers may use without attribution.*
 
