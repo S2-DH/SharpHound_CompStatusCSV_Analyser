@@ -43,7 +43,8 @@ Custom Font Awesome icons visually distinguish node types at a glance:
 *Console output from a full run with `-ExportOpenGraph -UploadIcons`. Shows export summary, edge type breakdown, Cypher query reference, and icon registration confirmation.*
 
 ### HTML Analysis Report
-![HTML report showing the BHE CompStatus analysis with traffic light indicators, failure category badges, remediation cards, and computer spotlight search](_screenshots/02_html_report.png)
+<img width="1863" height="910" alt="image" src="https://github.com/user-attachments/assets/9cc06660-b9bf-4698-a9b2-e91a8c1a4a76" />
+
 *The HTML report generated alongside the OG JSON. Includes interactive filters, remediation guidance per failure category, and the computer spotlight search.*
 
 ### BHE Explore - Graph View
