@@ -56,7 +56,7 @@ Custom Font Awesome icons visually distinguish node types at a glance:
 <img width="297" height="75" alt="image" src="https://github.com/user-attachments/assets/4d84c957-9f81-4011-8517-103849c6809b" />
 
 
-*The four Font Awesome icons registered via `POST /api/v2/custom-nodes`. Blue = collector, Green = full success, Red = at least one failure, Skull = no IP or SID resolved.*
+*Blue = collector, Green = full success, Red = at least one failure, Skull = no IP or SID resolved.*
 
 > **To add your own screenshots:** create a `_screenshots/` folder alongside the script and README, and save your captures using the filenames above.
 
