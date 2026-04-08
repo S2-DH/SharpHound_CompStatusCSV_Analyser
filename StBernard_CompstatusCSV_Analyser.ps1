@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    StBernard-SharpHound - compstatusCSV analyser
+    SharpHound - compstatusCSV analyser
     Analyses BloodHound Enterprise SharpHound compstatus CSV files and produces
     a categorised HTML report and OpenGraph JSON for BloodHound ingest.
 
@@ -33,17 +33,17 @@
     Skip the interactive menu and analyse all discovered CSV files immediately.
 
 .PARAMETER ExportOpenGraph
-    In addition to the HTML report, emit a StBernardHound OpenGraph JSON file
+    In addition to the HTML report, emit a SharpHound OpenGraph JSON file
     that can be uploaded to BloodHound Enterprise or Community Edition to graph
     all SharpHound collector <-> computer connectivity edges.
-    File is named StBernardHound_<timestamp>.json.
+    File is named SharpHound_<timestamp>.json.
 
 .PARAMETER CollectorName
     Friendly name for the SharpHound collector node in the OpenGraph output.
     Defaults to the local machine name ($env:COMPUTERNAME).
 
 .PARAMETER OGOutputFolder
-    Folder for the StBernardHound OpenGraph JSON output.
+    Folder for the SharpHound OpenGraph JSON output.
     Defaults to the same OutputFolder used by the HTML report.
 
 .PARAMETER ChunkSize
@@ -53,7 +53,7 @@
     and they all land in the same graph. Example: -ChunkSize 500
 
 .PARAMETER UploadIcons
-    After exporting the JSON, automatically upload the StBernardHound custom
+    After exporting the JSON, automatically upload the SharpHound custom
     node icons to BHE via PUT /api/v2/custom-nodes. Requires -BHEUrl,
     -BHETokenId, and -BHETokenKey.
 
@@ -74,7 +74,7 @@
 
 .EXAMPLE
     # Run interactively from script directory
-    .\StBernard-SharpHound-compstatusCSV-analyser.ps1
+    .\SharpHound-SharpHound-compstatusCSV-analyser.ps1
 
 .EXAMPLE
     # Specify folders explicitly
@@ -87,7 +87,7 @@
 .NOTES
     Author  : SDH / SpecterOps TAM
     Version : 3.0
-    Project : St.Bernard-Hound - CompStatus CSV Analyser and OG JSON Generator v1
+    Project : SharpHound - CompStatus CSV Analyser and OG JSON Generator v1
     Requires: PowerShell 5.1+
     Context : BloodHound Enterprise - session and local group collection diagnostics
 #>
@@ -101,15 +101,15 @@ param(
     [string]$SearchFolder = '',
 
     [Parameter()]
-    [string]$ReportTitle = 'St.Bernard-Hound - CompStatus CSV Analyser v1',
+    [string]$ReportTitle = 'SharpHound - CompStatus CSV Analyser v1',
 
     [Parameter()]
     [switch]$NoMenu,
 
     # ---------------------------------------------------------------------------
-    #  StBernardHound  -  OpenGraph export parameters
+    #  SharpHound  -  OpenGraph export parameters
     # ---------------------------------------------------------------------------
-    # Emit a StBernardHound OpenGraph JSON alongside the HTML report.
+    # Emit a SharpHound OpenGraph JSON alongside the HTML report.
     # The JSON can be uploaded directly to BHE / BloodHound CE to graph all
     # collector <-> computer connectivity relationships.
     [Parameter()]
@@ -120,7 +120,7 @@ param(
     [Parameter()]
     [string]$CollectorName = '',
 
-    # Folder where the StBernardHound OpenGraph JSON will be written.
+    # Folder where the SharpHound OpenGraph JSON will be written.
     # Defaults to the same OutputFolder as the HTML report.
     [Parameter()]
     [string]$OGOutputFolder = '',
@@ -133,7 +133,7 @@ param(
     [int]$ChunkSize = 0,
 
     # ---------------------------------------------------------------------------
-    #  StBernardHound  -  Icon upload parameters
+    #  SharpHound  -  Icon upload parameters
     #  Requires -ExportOpenGraph. Uploads the SBH custom node icons to BHE via
     #  the POST /api/v2/custom-nodes API endpoint. Supports Bearer token
     #  (from API Explorer) or HMAC-SHA256 key pair auth.
@@ -318,8 +318,8 @@ function Get-RemediationHtml([string]$Cat) {
 }
 
 # ---------------------------------------------------------------------------
-#  STBERNARDHOUND  -  OPENGRAPH EXPORT FUNCTIONS
-#  Project : StBernardHound
+#  SharpHound  -  OPENGRAPH EXPORT FUNCTIONS
+#  Project : SharpHound
 #  Purpose : Produces a BloodHound OpenGraph JSON representing all SharpHound
 #             collector->computer connectivity relationships derived from the
 #             compstatus CSV, using the following edge model:
@@ -355,7 +355,7 @@ function SBH-BuildCollectorNodeJson {
     $dn  = SBH-EscJson $DisplayName
     $nm  = SBH-EscJson $DisplayName.ToUpper()
     $gat = SBH-EscJson $GeneratedAt
-    return '{"id":"' + $id + '","kinds":["SBHCollector"],"properties":{"name":"' + $nm + '","displayname":"' + $dn + '","description":"StBernardHound SharpHound Collector","source":"StBernardHound","generated_at":"' + $gat + '"}}'
+    return '{"id":"' + $id + '","kinds":["SBHCollector"],"properties":{"name":"' + $nm + '","displayname":"' + $dn + '","description":"SharpHound SharpHound Collector","source":"SharpHound","generated_at":"' + $gat + '"}}'
 }
 
 function SBH-BuildComputerNodeJson {
@@ -378,7 +378,7 @@ function SBH-BuildComputerNodeJson {
     } else {
         'SBHComputerFail'
     }
-    return '{"id":"' + $id + '","kinds":["' + $kind + '"],"properties":{"name":"' + $nm + '","displayname":"' + $dn + '"' + $sidBlock + $ipBlock + ',"trafficlight":"' + $tl + '","source":"StBernardHound"}}'
+    return '{"id":"' + $id + '","kinds":["' + $kind + '"],"properties":{"name":"' + $nm + '","displayname":"' + $dn + '"' + $sidBlock + $ipBlock + ',"trafficlight":"' + $tl + '","source":"SharpHound"}}'
 }
 
 function SBH-BuildEndpointJson {
@@ -411,7 +411,7 @@ function SBH-BuildEdgeJson {
     $sf  = SBH-EscJson $SourceFiles
 
     $startJson = '{"match_by":"id","value":"' + $sid + '"}'
-    $props     = '"occurrence_count":' + $OccurrenceCount + ',"category":"' + $cat + '","tasks_failed":"' + $tsk + '","collection_methods":"' + $mth + '","source":"StBernardHound"'
+    $props     = '"occurrence_count":' + $OccurrenceCount + ',"category":"' + $cat + '","tasks_failed":"' + $tsk + '","collection_methods":"' + $mth + '","source":"SharpHound"'
     if ($ip) { $props += ',"ip_address":"' + $ip + '"' }
     if ($sf) { $props += ',"source_files":"' + $sf + '"' }
 
@@ -454,7 +454,7 @@ function SBH-WriteChunkJson {
     [System.IO.File]::WriteAllText($Path, $json, $utf8NoBom)
 }
 
-function Export-StBernardHoundJson {
+function Export-SharpHoundJson {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)] $CompMap,
@@ -591,7 +591,7 @@ function Export-StBernardHoundJson {
 }
 
 # ---------------------------------------------------------------------------
-#  STBERNARDHOUND  -  ICON UPLOAD FUNCTION
+#  SharpHound  -  ICON UPLOAD FUNCTION
 # ---------------------------------------------------------------------------
 
 function Invoke-SBHIconUpload {
@@ -751,7 +751,7 @@ function Import-CompStatusCsv([string]$Path) {
 
 Write-Host ''
 Write-Host "  +-----------------------------------------------------------------------+" -ForegroundColor Cyan
-Write-Host "  |  St.Bernard-Hound - CompStatus CSV Analyser and OG JSON Generator v1 |" -ForegroundColor Cyan
+Write-Host "  |  SharpHound - CompStatus CSV Analyser and OG JSON Generator v1 |" -ForegroundColor Cyan
 Write-Host "  +-----------------------------------------------------------------------+" -ForegroundColor Cyan
 Write-Host ''
 
@@ -2423,14 +2423,14 @@ if (-not (Test-Path $OutputFolder)) {
 
 $timestamp   = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
 $modeTag     = if ($isMultiFile) { 'MultiRun' } else { 'SingleRun' }
-$outFileName = "StBernardHound-CompStatus-${modeTag}_${timestamp}.html"
+$outFileName = "SharpHound-CompStatus-${modeTag}_${timestamp}.html"
 $outPath     = Join-Path $OutputFolder $outFileName
 
 $html | Out-File -FilePath $outPath -Encoding UTF8 -Force
 
 Write-Host ''
 Write-Host '  +-------------------------------------------------------------+' -ForegroundColor Green
-Write-Host '  |  St.Bernard-Hound - Report written successfully             |' -ForegroundColor Green
+Write-Host '  |  SharpHound - Report written successfully             |' -ForegroundColor Green
 Write-Host '  +-------------------------------------------------------------+' -ForegroundColor Green
 Write-Host "     $outPath" -ForegroundColor White
 Write-Host ''
@@ -2451,7 +2451,7 @@ foreach ($cg in $catGroups) {
 Write-Host ''
 
 # ---------------------------------------------------------------------------
-#  STBERNARDHOUND OPENGRAPH EXPORT  (only runs when -ExportOpenGraph is set)
+#  SharpHound OPENGRAPH EXPORT  (only runs when -ExportOpenGraph is set)
 # ---------------------------------------------------------------------------
 
 if ($ExportOpenGraph) {
@@ -2460,7 +2460,7 @@ if ($ExportOpenGraph) {
     $collName    = if ($CollectorName)  { $CollectorName  } else { $env:COMPUTERNAME }
     $collId      = 'SBH-COLLECTOR-' + ($collName -replace '[^A-Za-z0-9\-]', '-').ToUpper()
     $ogTimestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
-    $ogFile      = "StBernardHound-OG_${ogTimestamp}.json"
+    $ogFile      = "SharpHound-OG_${ogTimestamp}.json"
     $ogPath      = Join-Path $ogFolder $ogFile
     $genAt       = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 
@@ -2470,12 +2470,12 @@ if ($ExportOpenGraph) {
 
     Write-Host ''
     Write-Host '  +-------------------------------------------------------------+' -ForegroundColor Magenta
-    Write-Host '  |  St.Bernard-Hound - OpenGraph Export                        |' -ForegroundColor Magenta
+    Write-Host '  |  SharpHound - OpenGraph Export                        |' -ForegroundColor Magenta
     Write-Host '  +-------------------------------------------------------------+' -ForegroundColor Magenta
     Write-Host ''
     Write-Host '  [*] Building OpenGraph payload...' -ForegroundColor Cyan
 
-    $ogResult = Export-StBernardHoundJson `
+    $ogResult = Export-SharpHoundJson `
         -CompMap              $compMap `
         -CollectorId          $collId `
         -CollectorDisplayName $collName `
@@ -2486,8 +2486,8 @@ if ($ExportOpenGraph) {
 
 
     Write-Host ''
-    Write-Host '  STBERNARDHOUND EXPORT SUMMARY' -ForegroundColor Magenta
-    Write-Host "    Project            : St.Bernard-Hound - CompStatus CSV Analyser and OG JSON Generator v1"
+    Write-Host '  SharpHound EXPORT SUMMARY' -ForegroundColor Magenta
+    Write-Host "    Project            : SharpHound - CompStatus CSV Analyser and OG JSON Generator v1"
     Write-Host "    Collector node     : $collName"
     Write-Host "    Collector ID       : $collId"
     Write-Host "    Nodes written      : $($ogResult.NodeCount)"
@@ -2590,7 +2590,7 @@ if ($ExportOpenGraph) {
         }
         else {
             Write-Host '  +-------------------------------------------------------------+' -ForegroundColor Blue
-            Write-Host '  |  St.Bernard-Hound - Uploading Custom Node Icons             |' -ForegroundColor Blue
+            Write-Host '  |  SharpHound - Uploading Custom Node Icons                   |' -ForegroundColor Blue
             Write-Host '  +-------------------------------------------------------------+' -ForegroundColor Blue
             Write-Host ''
             Write-Host '  [*] Uploading icons to BHE...' -ForegroundColor Cyan
