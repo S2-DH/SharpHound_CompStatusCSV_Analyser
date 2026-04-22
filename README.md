@@ -2,9 +2,6 @@
 
 **# SharpHound Compstatus.csv Analyser**
 
-> *Image: Freepik Premium resource. Free users must attribute: "Image by pch.vector on Freepik". Premium subscribers may use without attribution.*
-
-
 **Project:** SharpHound_CompstatusCSV_Analyser  
 **Version:** 3.0  
 **Script:** `SharpHound_CompstatusCSV_Analyser.ps1`  
