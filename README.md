@@ -350,12 +350,7 @@ Upload each file individually via **Explore -> Upload Data**. BHE merges them in
 - Icons must be registered once via the API before they appear — they are not part of the graph JSON
 
 **Re-ingesting:**
-- Each JSON upload adds new nodes/edges. If you re-run and re-ingest, you may end up with duplicate SharpHound nodes from previous runs. Clear old data via Cypher before re-ingesting if needed:
-```cypher
-MATCH (n:SBHCollector) DETACH DELETE n
-MATCH (n:SBHComputerOK) DETACH DELETE n
-MATCH (n:SBHComputerFail) DETACH DELETE n
-MATCH (n:SBHComputerUnknown) DETACH DELETE n
+- Each JSON upload adds new nodes/edges. If you re-run and re-ingest, you may end up with duplicate SharpHound nodes from previous runs. Clear old data via DB Management before re-ingesting.
 ```
 
 ---
